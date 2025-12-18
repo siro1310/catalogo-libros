@@ -10,10 +10,11 @@ public class Libro {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(length = 1000)
     private String titulo;
+
     private String idioma;
     private Integer numeroDescargas;
-
 
     @ManyToOne
     private Autor autor;
@@ -42,10 +43,8 @@ public class Libro {
     public Autor getAutor() {
         return autor;
     }
+
     public Integer getNumeroDescargas() {
         return numeroDescargas;
     }
-
-
-
 }

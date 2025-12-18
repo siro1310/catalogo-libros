@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.transaction.annotation.Transactional;
 import com.catalogo.libros.service.CatalogoService;
 
+
 import java.util.Scanner;
 
 @SpringBootApplication
@@ -18,8 +19,6 @@ public class CatalogoLibrosApplication implements CommandLineRunner {
         return idioma.toUpperCase();
     }
     private final CatalogoService catalogoService;
-
-
 
     public CatalogoLibrosApplication(
             AutorRepository autorRepository,
@@ -36,27 +35,50 @@ public class CatalogoLibrosApplication implements CommandLineRunner {
         SpringApplication.run(CatalogoLibrosApplication.class, args);
     }
 
+
     @Override
     public void run(String... args) {
         Scanner sc = new Scanner(System.in);
         int opcion;
 
-        cargarDatosIniciales();
-
         do {
             mostrarMenu();
             opcion = sc.nextInt();
-            sc.nextLine();
+            sc.nextLine(); // limpiar buffer
 
             switch (opcion) {
-                case 1 -> buscarLibroPorTitulo(sc);
-                case 2 -> listarLibros();
+                case 1 -> {
+                    System.out.print("Ingrese título: ");
+                    String titulo = sc.nextLine();
+
+                    // 1️⃣ Buscar en BD o API y mostrar
+                    catalogoService.buscarLibroPorTitulo(titulo);
+
+                    // 2️⃣ Guardar automáticamente desde la API
+                    catalogoService.buscarYGuardarLibrosDesdeApi(titulo);
+                }
+
+
+                case 2 -> catalogoService.listarLibros();
+
                 case 3 -> catalogoService.listarAutores();
-                case 4 -> autoresVivosPorAnio(sc);
-                case 5 -> librosPorIdioma(sc);
+
+                case 4 -> {
+                    System.out.print("Ingrese año: ");
+                    int anio = sc.nextInt();
+                    sc.nextLine();
+                    catalogoService.autoresVivosPorAnio(anio);
+                }
+                case 5 -> {
+                    System.out.print("Ingrese idioma (es, en, fr, pt): ");
+                    String idioma = sc.nextLine();
+                    catalogoService.listarLibrosPorIdioma(idioma);
+                }
                 case 0 -> salidaElegante();
                 default -> System.out.println("❌ Opción inválida");
             }
+
+
         } while (opcion != 0);
     }
 
@@ -78,74 +100,6 @@ public class CatalogoLibrosApplication implements CommandLineRunner {
     }
 
     // ============== FUNCIONES ==============
-
-    private void buscarLibroPorTitulo(Scanner sc) {
-        System.out.print("Ingrese título del libro: ");
-        String titulo = sc.nextLine();
-
-        catalogoService.buscarLibroPorTitulo(titulo);
-    }
-    
-    private void listarLibros() {
-        libroRepository.findAll()
-                .forEach(l -> System.out.println("📕 " + l.getTitulo()));
-    }
-
-    @Transactional
-    public void listarAutores() {
-
-        var autores = autorRepository.findAll();
-
-        if (autores.isEmpty()) {
-            System.out.println("❌ No hay autores registrados");
-            return;
-        }
-
-        autores.forEach(autor -> {
-
-            String fallecimiento = (autor.getAnioMuerte() == null)
-                    ? "Vivo"
-                    : autor.getAnioMuerte().toString();
-
-            String libros = autor.getLibros().isEmpty()
-                    ? "Sin libros registrados"
-                    : autor.getLibros()
-                    .stream()
-                    .map(Libro::getTitulo)
-                    .distinct()
-                    .reduce((a, b) -> a + ", " + b)
-                    .orElse("");
-
-            System.out.println("""
-        ✍️ Autor: %s
-        📅 Nacimiento: %d
-        🕊️ Fallecimiento: %s
-        📚 Libros: %s
-        --------------------------------------------------
-        """.formatted(
-                    autor.getApellidoNombre(),
-                    autor.getAnioNacimiento(),
-                    fallecimiento,
-                    libros
-            ));
-        });
-    }
-
-    private void autoresVivosPorAnio(Scanner sc) {
-        System.out.print("Ingrese año: ");
-        int anio = sc.nextInt();
-
-        autorRepository.autoresVivosEnAnio(anio)
-                .forEach(a -> System.out.println("🟢 " + a.getNombre()));
-    }
-
-    private void librosPorIdioma(Scanner sc) {
-        System.out.print("Ingrese idioma (ES, EN, FR, PT, etc): ");
-        String idioma = sc.nextLine();
-
-        catalogoService.listarLibrosPorIdioma(idioma);
-    }
-
 
     private void salidaElegante() {
         System.out.println("""
